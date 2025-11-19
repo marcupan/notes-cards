@@ -1,0 +1,42 @@
+name: E2E Tests (Playwright)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        env:
+          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL || 'https://example.convex.cloud' }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'test_key' }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test_secret' }}
+        run: npx playwright test
+
+      - name: Notify Slack
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WF: ${{ github.workflow }}
+        run: |
+          payload=$(printf '{"text":"[%s] %s finished with status: %s\n%s"}' "$REPO" "$WF" "$STATUS" "$RUN_URL")
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$WEBHOOK"

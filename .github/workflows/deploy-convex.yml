@@ -1,0 +1,53 @@
+name: Deploy - Convex
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies (Convex CLI)
+        run: npm i convex --no-save
+
+      - name: Set Convex env (OPENAI_API_KEY)
+        if: ${{ secrets.CONVEX_OPENAI_API_KEY != '' }}
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_OPENAI_API_KEY: ${{ secrets.CONVEX_OPENAI_API_KEY }}
+        run: npx convex env set --prod OPENAI_API_KEY "$CONVEX_OPENAI_API_KEY"
+
+      - name: Set Convex env (ADMIN_USER_IDS)
+        if: ${{ secrets.CONVEX_ADMIN_USER_IDS != '' }}
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_ADMIN_USER_IDS: ${{ secrets.CONVEX_ADMIN_USER_IDS }}
+        run: npx convex env set --prod ADMIN_USER_IDS "$CONVEX_ADMIN_USER_IDS"
+
+      - name: Deploy Convex
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex deploy
+
+      - name: Notify Slack
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WF: ${{ github.workflow }}
+        run: |
+          payload=$(printf '{"text":"[%s] %s finished with status: %s\n%s"}' "$REPO" "$WF" "$STATUS" "$RUN_URL")
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$WEBHOOK"

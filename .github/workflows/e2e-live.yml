@@ -1,0 +1,61 @@
+name: E2E Tests (Live)
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseUrl:
+        description: 'Base URL of deployed app (overrides secret)'
+        required: false
+      generate:
+        description: 'Set to 1 to generate a card (uses OpenAI)'
+        required: false
+        default: '0'
+      admin:
+        description: 'Set to 1 if test user is admin to test delete'
+        required: false
+        default: '0'
+
+jobs:
+  e2e-live:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ staging, production ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Live Playwright tests against deployed URL
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.baseUrl || (matrix.target == 'staging' && secrets.PLAYWRIGHT_BASE_URL_STAGING) || secrets.PLAYWRIGHT_BASE_URL }}
+          E2E_LIVE: '1'
+          E2E_CLERK_EMAIL: ${{ secrets.E2E_CLERK_EMAIL }}
+          E2E_CLERK_PASSWORD: ${{ secrets.E2E_CLERK_PASSWORD }}
+          E2E_GENERATE: ${{ github.event.inputs.generate || secrets.E2E_GENERATE || '0' }}
+          E2E_ADMIN: ${{ github.event.inputs.admin || secrets.E2E_ADMIN || '0' }}
+        run: npx playwright test tests/e2e-live.spec.ts
+
+      - name: Notify Slack
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        env:
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          WF: ${{ github.workflow }}
+        run: |
+          payload=$(printf '{"text":"[%s] %s finished with status: %s\n%s"}' "$REPO" "$WF" "$STATUS" "$RUN_URL")
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$WEBHOOK"
