@@ -1,6 +1,13 @@
 import { v } from "convex/values";
-import { action, query } from "./_generated/server";
+import { action, query, internalQuery, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { z } from "zod";
+
+// Type for card with createdAt from rate limit query
+interface CardWithTimestamp {
+  createdAt: number;
+}
 
 const CardContent = z.object({
   translation: z.string().min(1),
@@ -10,7 +17,7 @@ const CardContent = z.object({
 
 export const generateCard = action({
   args: { originalWord: v.string(), folderId: v.id("folders") },
-  handler: async (ctx, { originalWord, folderId }) => {
+  handler: async (ctx, { originalWord, folderId }): Promise<Id<"cards">> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("UNAUTHORIZED");
 
@@ -22,16 +29,16 @@ export const generateCard = action({
     if (!hasHan) throw new Error("INVALID_ORIGINAL_WORD");
 
     // Duplicate guard per user+word (any folder)
-    const dup = await ctx.runQuery("cards:hasUserWord", { userId, originalWord: word });
+    const dup = await ctx.runQuery(internal.generateCard.hasUserWordInternal, { userId, originalWord: word });
     if (dup) throw new Error("DUPLICATE_CARD");
 
     // Rate limiting via recent card counts (5/min, 20/day)
     const now = Date.now();
     const minuteAgo = now - 60_000;
     const dayAgo = now - 86_400_000;
-    const recent = await ctx.runQuery("generateCard:getUserRecentCardCounts", { userId, sinceMs: Math.min(minuteAgo, dayAgo) });
-    const perMinute = recent.filter((c) => c.createdAt >= minuteAgo).length;
-    const perDay = recent.filter((c) => c.createdAt >= dayAgo).length;
+    const recent = await ctx.runQuery(internal.generateCard.getUserRecentCardCountsInternal, { userId, sinceMs: Math.min(minuteAgo, dayAgo) });
+    const perMinute = recent.filter((c: CardWithTimestamp) => c.createdAt >= minuteAgo).length;
+    const perDay = recent.filter((c: CardWithTimestamp) => c.createdAt >= dayAgo).length;
     if (perMinute >= 5 || perDay >= 20) throw new Error("RATE_LIMITED");
 
     // OpenAI call with 10s timeout
@@ -76,8 +83,9 @@ export const generateCard = action({
     if (!parsed.success) throw new Error("INVALID_AI_RESPONSE");
 
     // Save via mutation
-    const id = await ctx.runMutation("cards:saveCard", {
+    const id = await ctx.runMutation(internal.generateCard.saveCardInternal, {
       folderId,
+      userId,
       originalWord: word,
       translation: parsed.data.translation,
       characterBreakdown: parsed.data.characterBreakdown,
@@ -96,5 +104,52 @@ export const getUserRecentCardCounts = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     return rows.filter((r) => r.createdAt >= sinceMs);
+  },
+});
+
+// Internal functions for action calls
+export const hasUserWordInternal = internalQuery({
+  args: { userId: v.string(), originalWord: v.string() },
+  handler: async (ctx, { userId, originalWord }) => {
+    const existing = await ctx.db
+      .query("cards")
+      .withIndex("by_user_and_word", (q) => q.eq("userId", userId).eq("originalWord", originalWord))
+      .first();
+    return existing !== null;
+  },
+});
+
+export const getUserRecentCardCountsInternal = internalQuery({
+  args: { userId: v.string(), sinceMs: v.number() },
+  handler: async (ctx, { userId, sinceMs }) => {
+    const rows = await ctx.db
+      .query("cards")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    return rows.filter((r) => r.createdAt >= sinceMs);
+  },
+});
+
+export const saveCardInternal = internalMutation({
+  args: {
+    folderId: v.id("folders"),
+    userId: v.string(),
+    originalWord: v.string(),
+    translation: v.string(),
+    characterBreakdown: v.array(v.string()),
+    exampleSentences: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const id = await ctx.db.insert("cards", {
+      folderId: args.folderId,
+      userId: args.userId,
+      originalWord: args.originalWord,
+      translation: args.translation,
+      characterBreakdown: args.characterBreakdown,
+      exampleSentences: args.exampleSentences,
+      createdAt: now,
+    });
+    return id;
   },
 });

@@ -1,6 +1,7 @@
 "use client";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 
 type Check = { label: string; ok: boolean; details?: string };
@@ -8,8 +9,8 @@ type Check = { label: string; ok: boolean; details?: string };
 export default function PreflightPage() {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const env = useQuery("system:envStatus", {});
-  const folders = useQuery("folders:listFolders", {});
+  const env = useQuery(api.system.envStatus);
+  const folders = useQuery(api.folders.listFolders);
 
   const checks: Check[] = [
     { label: "Convex URL configured (client)", ok: Boolean(convexUrl) },
