@@ -70,13 +70,23 @@ export const generateCard = action({
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      if (!res.ok) throw new Error(`OPENAI_ERROR_${res.status}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`OpenAI API error ${res.status}:`, errorText);
+        throw new Error(`OPENAI_ERROR_${res.status}`);
+      }
       const json = (await res.json()) as any;
       const content = json?.choices?.[0]?.message?.content;
+      if (!content) {
+        console.error("No content in OpenAI response:", json);
+        throw new Error("OPENAI_NO_CONTENT");
+      }
       data = JSON.parse(content);
     } catch (err) {
       clearTimeout(timeout);
-      throw new Error("AI_CALL_FAILED");
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("AI call failed:", errorMsg);
+      throw new Error(`AI_CALL_FAILED: ${errorMsg}`);
     }
 
     const parsed = CardContent.safeParse(data);

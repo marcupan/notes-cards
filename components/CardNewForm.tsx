@@ -16,12 +16,12 @@ const chineseRegex = /\p{Script=Han}/u; // at least one Han character
 const FormSchema = z.object({
     originalWord: z
         .string()
-        .trim()
         .min(1, "Enter a Chinese word")
         .max(20, "Keep it 20 characters or fewer")
         .refine((s) => chineseRegex.test(s), {
             message: "Please enter at least one Chinese character",
-        }),
+        })
+        .transform((s) => s.trim()),
 });
 
 type FormValues = z.infer<typeof FormSchema>;
@@ -46,7 +46,7 @@ export default function CardNewForm() {
         setLoading(true);
         try {
             await generateCard({
-                originalWord: values.originalWord.trim(),
+                originalWord: values.originalWord,
                 folderId: selectedFolderId as Id<"folders">,
             });
             reset();
