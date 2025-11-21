@@ -1,5 +1,5 @@
 "use client";
-import {SignedIn, SignedOut, SignInButton, UserButton, OrganizationSwitcher} from "@clerk/nextjs";
+import {SignedIn, SignedOut, SignInButton, UserButton} from "@clerk/nextjs";
 import FolderSidebar from "@/components/FolderSidebar";
 import CardNewForm from "@/components/CardNewForm";
 import CardList from "@/components/CardList";
@@ -12,17 +12,14 @@ export default function HomePage() {
         <main className="h-screen flex flex-col">
             <header className="flex items-center justify-between px-4 py-2 border-b bg-white">
                 <div className="font-semibold flex items-center">Anki Chinese <RoleBadge/></div>
-                <div>
+                <div className="flex items-center gap-2">
                     <SignedOut>
                         <SignInButton>
                             <Button variant="outline" size="sm">Sign in</Button>
                         </SignInButton>
                     </SignedOut>
                     <SignedIn>
-                        <div className="flex items-center gap-3">
-                            <OrganizationSwitcher afterSelectOrganizationUrl="/"/>
-                            <UserButton afterSignOutUrl="/"/>
-                        </div>
+                        <UserButton afterSignOutUrl="/"/>
                     </SignedIn>
                 </div>
             </header>

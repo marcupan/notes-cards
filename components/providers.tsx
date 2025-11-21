@@ -3,6 +3,7 @@ import {ReactNode} from "react";
 import {ClerkProvider, useAuth} from "@clerk/nextjs";
 import {ConvexReactClient} from "convex/react";
 import {ConvexProviderWithClerk} from "convex/react-clerk";
+import {NuqsAdapter} from "nuqs/adapters/next/app";
 import {ToastProvider} from "@/components/ToastProvider";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -17,7 +18,9 @@ export function Providers({children}: { children: ReactNode }) {
     return (
         <ClerkProvider>
             <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                <ToastProvider>{children}</ToastProvider>
+                <NuqsAdapter>
+                    <ToastProvider>{children}</ToastProvider>
+                </NuqsAdapter>
             </ConvexProviderWithClerk>
         </ClerkProvider>
     );
