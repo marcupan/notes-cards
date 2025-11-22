@@ -6,3 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 
 # Cloudflare Pages build output directory
 pages_build_output_dir = ".vercel/output/static"
+
+# Build environment variables for Next.js build
+[build.env]
+NEXT_PUBLIC_CONVEX_URL = "https://graceful-ox-320.convex.cloud"
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_ZmFpdGhmdWwtd2Vhc2VsLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"

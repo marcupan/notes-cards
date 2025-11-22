@@ -6,13 +6,10 @@ import {ConvexProviderWithClerk} from "convex/react-clerk";
 import {NuqsAdapter} from "nuqs/adapters/next/app";
 import {ToastProvider} from "@/components/ToastProvider";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+// Use a placeholder URL during build if NEXT_PUBLIC_CONVEX_URL is not set
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://placeholder.convex.cloud";
 
-if (!convexUrl) {
-    console.warn("NEXT_PUBLIC_CONVEX_URL is not set. Convex client will fail.");
-}
-
-const convex = new ConvexReactClient(convexUrl || "");
+const convex = new ConvexReactClient(convexUrl);
 
 export function Providers({children}: { children: ReactNode }) {
     return (
