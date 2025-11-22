@@ -15,7 +15,7 @@ yarn-error.log*
 .env.*.local
 
 # Convex generated
-convex/_generated/
+# convex/_generated/  (committed to git so Cloudflare can build)
 
 # OS
 .DS_Store
