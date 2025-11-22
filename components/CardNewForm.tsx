@@ -59,9 +59,11 @@ export default function CardNewForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex gap-2">
-            <Input placeholder="Enter Chinese word" {...register("originalWord")}/>
-            <Button type="submit" disabled={loading}>{loading ? "Generating..." : "Generate"}</Button>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+            <div className="flex gap-2">
+                <Input placeholder="Enter Chinese word" {...register("originalWord")}/>
+                <Button type="submit" disabled={loading}>{loading ? "Generating..." : "Generate"}</Button>
+            </div>
             {errors.originalWord && (
                 <span className="text-sm text-red-600">{errors.originalWord.message}</span>
             )}

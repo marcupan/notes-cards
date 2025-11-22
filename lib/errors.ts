@@ -16,8 +16,10 @@ export function friendlyError(err: unknown): string {
       return "You already have a folder with that name.";
     case /DUPLICATE_CARD/.test(code):
       return "You already have a card for this word in the folder.";
+    case /RATE_LIMITED_DAILY/.test(code):
+      return "Daily limit reached (20 cards/day). Try again tomorrow.";
     case /RATE_LIMITED/.test(code):
-      return "You’ve hit the limit (5/min, 20/day). Try later.";
+      return "You've hit the minute limit (5/min). Try again in a minute.";
     case /INVALID_AI_RESPONSE/.test(code):
       return "Couldn’t understand AI response. Please try again.";
     case /AI_CALL_FAILED/.test(code):
