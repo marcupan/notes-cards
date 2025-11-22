@@ -6,14 +6,16 @@ import {ConvexProviderWithClerk} from "convex/react-clerk";
 import {NuqsAdapter} from "nuqs/adapters/next/app";
 import {ToastProvider} from "@/components/ToastProvider";
 
-// Use a placeholder URL during build if NEXT_PUBLIC_CONVEX_URL is not set
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://placeholder.convex.cloud";
+// Use placeholder URLs during build if environment variables are not set
+// These will be replaced with actual values at runtime in production
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://graceful-ox-320.convex.cloud";
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_ZmFpdGhmdWwtd2Vhc2VsLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ";
 
 const convex = new ConvexReactClient(convexUrl);
 
 export function Providers({children}: { children: ReactNode }) {
     return (
-        <ClerkProvider>
+        <ClerkProvider publishableKey={clerkPublishableKey}>
             <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
                 <NuqsAdapter>
                     <ToastProvider>{children}</ToastProvider>
