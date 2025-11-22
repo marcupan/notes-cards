@@ -3,11 +3,7 @@ import { action, query, internalQuery, internalMutation } from "./_generated/ser
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { z } from "zod";
-
-// Type for card with createdAt from rate limit query
-interface CardWithTimestamp {
-  createdAt: number;
-}
+import redis from "./upstash";
 
 const CardContent = z.object({
   translation: z.string().min(1),
@@ -32,14 +28,43 @@ export const generateCard = action({
     const dup = await ctx.runQuery(internal.generateCard.hasUserWordInternal, { userId, originalWord: word });
     if (dup) throw new Error("DUPLICATE_CARD");
 
-    // Rate limiting via recent card counts (5/min, 20/day)
-    const now = Date.now();
-    const minuteAgo = now - 60_000;
-    const dayAgo = now - 86_400_000;
-    const recent = await ctx.runQuery(internal.generateCard.getUserRecentCardCountsInternal, { userId, sinceMs: Math.min(minuteAgo, dayAgo) });
-    const perMinute = recent.filter((c: CardWithTimestamp) => c.createdAt >= minuteAgo).length;
-    const perDay = recent.filter((c: CardWithTimestamp) => c.createdAt >= dayAgo).length;
-    if (perMinute >= 5 || perDay >= 20) throw new Error("RATE_LIMITED");
+    // Rate limiting via Upstash Redis (5/min, 20/day)
+    try {
+      const now = Date.now();
+      const minuteKey = `rl:1:${userId}:m:${Math.floor(now / 60_000)}`;
+      const dayKey = `rl:1:${userId}:d:${Math.floor(now / 86_400_000)}`;
+
+      // Per-minute limit (5 cards/minute)
+      const countMinute = await redis.incr(minuteKey);
+      if (countMinute === 1) await redis.expire(minuteKey, 60);
+      if (countMinute > 5) throw new Error("RATE_LIMITED");
+
+      // Per-day limit (20 cards/day)
+      const countDay = await redis.incr(dayKey);
+      if (countDay === 1) await redis.expire(dayKey, 86400);
+      if (countDay > 20) throw new Error("RATE_LIMITED_DAILY");
+    } catch (err) {
+      // Check if this is a rate limit error from Redis
+      if (err instanceof Error && (err.message === "RATE_LIMITED" || err.message === "RATE_LIMITED_DAILY")) {
+        throw err;
+      }
+
+      console.warn("Redis rate limit check failed, attempting database fallback:", err);
+
+      // Fallback: use database-based rate limiting if Redis is down
+      try {
+        const minuteAgo = Date.now() - 60_000;
+        const dayAgo = Date.now() - 86_400_000;
+        const recent = await ctx.runQuery(internal.generateCard.getUserRecentCardCountsInternal, { userId, sinceMs: Math.min(minuteAgo, dayAgo) });
+        const perMinute = recent.filter((c) => c.createdAt >= minuteAgo).length;
+        const perDay = recent.filter((c) => c.createdAt >= dayAgo).length;
+        if (perMinute >= 5 || perDay >= 20) throw new Error("RATE_LIMITED");
+      } catch (fallbackErr) {
+        // If both Redis AND database fail, ALWAYS fail safe (don't allow request)
+        console.error("ALL rate limiting mechanisms failed - blocking request for safety:", fallbackErr);
+        throw new Error("RATE_LIMITED");
+      }
+    }
 
     // OpenAI call with 10s timeout
     const apiKey = process.env.OPENAI_API_KEY;
