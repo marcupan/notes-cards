@@ -8,8 +8,8 @@ import {ToastProvider} from "@/components/ToastProvider";
 
 // Use placeholder URLs during build if environment variables are not set
 // These will be replaced with actual values at runtime in production
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://graceful-ox-320.convex.cloud";
-const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_test_ZmFpdGhmdWwtd2Vhc2VsLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ";
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "https://placeholder.convex.cloud";
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_placeholder";
 
 const convex = new ConvexReactClient(convexUrl);
 
