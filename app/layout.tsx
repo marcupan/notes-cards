@@ -6,19 +6,19 @@ import {
     SignedOut,
     UserButton,
 } from '@clerk/nextjs'
-import {Geist, Geist_Mono} from 'next/font/google'
 import {Providers} from '@/components/providers'
 import './globals.css'
 
-const geistSans = Geist({
-    variable: '--font-geist-sans',
-    subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-    variable: '--font-geist-mono',
-    subsets: ['latin'],
-})
+// Fonts disabled for Cloudflare Pages compatibility
+// const geistSans = Geist({
+//     variable: '--font-geist-sans',
+//     subsets: ['latin'],
+// })
+//
+// const geistMono = Geist_Mono({
+//     variable: '--font-geist-mono',
+//     subsets: ['latin'],
+// })
 
 export const metadata: Metadata = {
     title: 'Anki Chinese MVP',
@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body className="antialiased">
         <Providers>
             {children}
         </Providers>
