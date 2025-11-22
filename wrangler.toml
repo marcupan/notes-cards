@@ -1,35 +1,8 @@
 name = "notes-cards"
 compatibility_date = "2025-11-22"
 
-# Compatibility flags for Node.js API support
+# Compatibility flags for Node.js API support required by Convex and dependencies
 compatibility_flags = ["nodejs_compat"]
 
-# Cloudflare Pages build configuration
+# Cloudflare Pages build output directory
 pages_build_output_dir = ".vercel/output/static"
-
-# Environment variables
-[env.production]
-name = "notes-cards"
-
-# Durable Objects (optional - for real-time sync)
-[[durable_objects.bindings]]
-name = "SYNC"
-class_name = "SyncDurableObject"
-script_name = "notes-cards"
-
-# Analytics Engine (optional - for usage tracking)
-[[analytics_engine_datasets]]
-binding = "ANALYTICS"
-dataset = "notes_cards_analytics"
-
-# KV Namespace bindings (optional - for caching)
-[[kv_namespaces]]
-binding = "CACHE"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
-
-# R2 bucket bindings (optional - for file storage)
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "notes-cards-bucket"
-preview_bucket_name = "notes-cards-bucket-preview"
