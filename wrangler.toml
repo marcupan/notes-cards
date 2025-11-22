@@ -1,0 +1,54 @@
+name = "notes-cards"
+main = "src/index.js"
+compatibility_date = "2025-11-22"
+
+# Compatibility flags for Node.js API support
+compatibility_flags = ["nodejs_compat"]
+
+# Build configuration for Next.js
+[build]
+command = "npm run build"
+cwd = "."
+watch_paths = ["src/**/*.ts", "src/**/*.tsx", "app/**/*.ts", "app/**/*.tsx"]
+
+# Build watch paths for development
+[build.upload]
+format = "modules"
+main = ".next/server/app.js"
+
+# Environment variables (development)
+[env.production]
+name = "notes-cards"
+
+# Bindings for KV storage (optional - for caching)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "notes-cards-bucket"
+preview_bucket_name = "notes-cards-bucket-preview"
+
+# Durable Objects (optional - for real-time sync)
+[[durable_objects.bindings]]
+name = "SYNC"
+class_name = "SyncDurableObject"
+script_name = "notes-cards"
+
+# Analytics Engine (optional - for usage tracking)
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "notes_cards_analytics"
+
+# Observability
+[observability]
+enabled = true
+
+# Triggers and scheduled tasks (optional)
+[[triggers.crons]]
+crons = ["0 0 * * *"]  # Daily task example
+
+# Logpush configuration (optional)
+[logpush]
+enabled = false
+
+# Performance settings
+[limits]
+cpu_milliseconds = 50000
